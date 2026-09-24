@@ -814,6 +814,7 @@ else {
           );
         }
       }
+      state.version = app.getVersion();
       providers.initCache(join(app.getPath("userData"), "provider-cache.json"));
       const repaired = repairProgress(state.progress);
       if (JSON.stringify(repaired) !== JSON.stringify(state.progress)) {
@@ -943,9 +944,22 @@ else {
         queueSync();
         return state;
       });
+      handle("watchDelete", (id) => {
+        const mediaId = positive(id);
+        delete state.watch[String(mediaId)];
+        for (const [key, saved] of Object.entries(state.progress))
+          if (saved.mediaId === mediaId) delete state.progress[key];
+        if (current?.mediaId === mediaId) current = undefined;
+        syncPreview = undefined;
+        save();
+        return state;
+      });
       handle("watchEdit", (id, patch) => {
         const entry = state.watch[String(positive(id))];
         if (!entry || !patch || typeof patch !== "object") throw Error("Watch entry was not found.");
+        if (patch.count !== undefined && (!Number.isSafeInteger(patch.count) || patch.count < 0
+          || (entry.totalEpisodes != null && patch.count > entry.totalEpisodes)))
+          throw Error("Episode progress exceeds the valid range.");
         const now = Date.now();
         if (patch.startRewatch) {
           if (entry.status !== "COMPLETED") throw Error("Complete the anime before a rewatch.");
@@ -953,6 +967,10 @@ else {
           entry.runs.push({ started: now, episodes: {}, count: 0 });
           entry.status = "REPEATING"; entry.count = 0;
           entry.statusUpdated = entry.countUpdated = now;
+          for (const saved of Object.values(state.progress)) {
+            if (saved.mediaId === entry.mediaId) { saved.position = 0; saved.watched = false; saved.updated = now; }
+          }
+          if (current?.mediaId === entry.mediaId) current = undefined;
         }
         if (patch.status !== undefined) {
           if (!statuses.includes(patch.status as WatchStatus)) throw Error("Invalid watch status.");
@@ -964,7 +982,6 @@ else {
           }
         }
         if (patch.count !== undefined) {
-          if (!Number.isSafeInteger(patch.count) || patch.count < 0 || patch.count > 100000) throw Error("Invalid episode count.");
           entry.count = patch.count; entry.countUpdated = now; activeRun(entry).count = patch.count;
         }
         if (patch.episode !== undefined) {
@@ -1185,7 +1202,7 @@ else {
         }
         throw Error("Invalid player action.");
       });
-      handle("state", () => ({ ...state, version: app.getVersion() }));
+      handle("state", () => state);
       handle("startupUpdate", startupUpdate);
       handle("checkUpdates", checkUpdates);
       handle("updateStatus", () => updateStatus);

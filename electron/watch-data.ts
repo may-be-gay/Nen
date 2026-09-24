@@ -61,6 +61,7 @@ export function migrateProgress(watch: Record<string, WatchEntry>, progress: Rec
       changed = true;
     }
     const run = activeRun(entry);
+    if (entry.runs.length > 1 && saved.updated < run.started) continue;
     if (!run.episodes[String(saved.episode)]) {
       run.episodes[String(saved.episode)] = {
         watched: saved.watched === true || (saved.duration > 0 && saved.position / saved.duration > 0.85),
@@ -93,7 +94,7 @@ export function validateTransfer(value: unknown): Record<string, WatchEntry> {
       typeof row.cover !== "string" || row.cover.length > 2000 ||
       typeof row.season !== "string" || row.season.length > 500 ||
       !statuses.includes(row.status) ||
-      !Number.isSafeInteger(row.count) || row.count < 0 || row.count > 100000 ||
+      !Number.isSafeInteger(row.count) || row.count < 0 ||
       !Number.isSafeInteger(row.repeat) || row.repeat < 0 || row.repeat > 100000 ||
       (row.seasonNumber !== undefined && row.seasonNumber !== null && (!Number.isSafeInteger(row.seasonNumber) || row.seasonNumber < 0 || row.seasonNumber > 1000)) ||
       (row.totalEpisodes !== null && (!Number.isSafeInteger(row.totalEpisodes) || row.totalEpisodes < 0 || row.totalEpisodes > 100000)) ||
@@ -105,7 +106,7 @@ export function validateTransfer(value: unknown): Record<string, WatchEntry> {
     for (const run of row.runs) {
       if (!run || !Number.isFinite(run.started) || run.started < 0 ||
         (run.completed !== undefined && (!Number.isFinite(run.completed) || run.completed < 0)) ||
-        !Number.isSafeInteger(run.count) || run.count < 0 || run.count > 100000 ||
+        !Number.isSafeInteger(run.count) || run.count < 0 ||
         !run.episodes || typeof run.episodes !== "object" || Array.isArray(run.episodes) || Object.keys(run.episodes).length > 100000)
         throw Error("Invalid watch record.");
       const episodes: typeof run.episodes = {};

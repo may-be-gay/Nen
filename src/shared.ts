@@ -212,6 +212,7 @@ export interface Playback {
 export interface UpdateStatus { busy: boolean; message: string; percent?: number }
 export interface API {
   watchAdd(id: number): Promise<State>;
+  watchDelete(id: number): Promise<State>;
   watchEdit(id: number, patch: { status?: WatchStatus; count?: number; episode?: number; watched?: boolean; position?: number; duration?: number; startRewatch?: boolean }): Promise<State>;
   watchExport(): Promise<string | null>;
   watchImportPreview(): Promise<ImportPreview | null>;

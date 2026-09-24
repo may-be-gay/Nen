@@ -110,7 +110,7 @@ async function browseBack(direction: "back" | "forward" = "back") {
   try {
     if (previous.route === "series" && previous.mediaId)
       await openMedia(previous.mediaId);
-    else if (previous.route === "history") await history();
+    else if (previous.route === "history") await watchlist();
     else if (previous.route === "watchlist") await watchlist();
     else if (previous.route === "discover") await discover(page);
     else await home();
@@ -131,7 +131,7 @@ const backToList = () =>
     : seriesReturn === "watchlist"
       ? watchlist()
     : seriesReturn === "history"
-      ? history()
+      ? watchlist()
       : discover(page);
 
 let dismissToast = () => {};
@@ -215,7 +215,7 @@ function activeNav(name: string) {
     );
 }
 const uiIcon = (name: string) =>
-  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">${({ search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>', close: '<path d="m6 6 12 12M18 6 6 18"/>', left: '<path d="m14 5-7 7 7 7"/>', right: '<path d="m10 5 7 7-7 7"/>', refresh: '<path d="M20 7v5h-5M4 17v-5h5M19 10a7 7 0 0 0-12-5L4 8m1 6a7 7 0 0 0 12 5l3-3"/>', home: '<path d="m3 11 9-8 9 8M5 9v12h5v-7h4v7h5V9"/>', history: '<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>', browse: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>', settings: '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/>' } as Record<string, string>)[name]}</svg>`;
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">${({ search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>', close: '<path d="m6 6 12 12M18 6 6 18"/>', left: '<path d="m14 5-7 7 7 7"/>', right: '<path d="m10 5 7 7-7 7"/>', refresh: '<path d="M20 7v5h-5M4 17v-5h5M19 10a7 7 0 0 0-12-5L4 8m1 6a7 7 0 0 0 12 5l3-3"/>', home: '<path d="m3 11 9-8 9 8M5 9v12h5v-7h4v7h5V9"/>', lists: '<path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>', history: '<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>', browse: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>', settings: '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/>' } as Record<string, string>)[name]}</svg>`;
 let filterOptions: Promise<{ genres: string[]; tags: string[] }> | undefined;
 const getOptions = () =>
   (filterOptions ??= api.catalogOptions().catch((e) => {
@@ -223,7 +223,7 @@ const getOptions = () =>
     throw e;
   }));
 function shell() {
-  root.innerHTML = `<aside class="sidebar"><nav aria-label="Main"><button data-nav="home">${uiIcon("home")} Home</button><button data-nav="history">${uiIcon("history")} Continue watching</button><button data-nav="watchlist">${uiIcon("history")} Watch list</button><button data-nav="browse">${uiIcon("browse")} Browse</button></nav><div class="sidebar-bottom"><button data-nav="settings">${uiIcon("settings")} Settings</button></div></aside><div class="workspace"><header class="topbar"><div id="page-title"></div><form id="search" role="search"><label class="sr-only" for="search-input">Search anime</label>${uiIcon("search")}<input id="search-input" type="text" role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" aria-expanded="false" placeholder="Search for anime" autocomplete="off" maxlength="200"><button type="button" id="clear-search" class="square-button" aria-label="Clear search" hidden>${uiIcon("close")}</button><div id="search-suggestions" role="listbox" aria-label="Anime suggestions" hidden></div></form><div id="page-actions"></div></header><div id="message" role="alert" hidden></div><main id="main" tabindex="-1"></main></div><dialog id="dialog" aria-labelledby="dialog-title"></dialog>`;
+  root.innerHTML = `<aside class="sidebar"><nav aria-label="Main"><button data-nav="home">${uiIcon("home")} Home</button><button data-nav="watchlist">${uiIcon("lists")} Lists</button><button data-nav="browse">${uiIcon("browse")} Browse</button></nav><div class="sidebar-bottom"><button data-nav="settings">${uiIcon("settings")} Settings</button></div></aside><div class="workspace"><header class="topbar"><div id="page-title"></div><form id="search" role="search"><label class="sr-only" for="search-input">Search anime</label>${uiIcon("search")}<input id="search-input" type="text" role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" aria-expanded="false" placeholder="Search for anime" autocomplete="off" maxlength="200"><button type="button" id="clear-search" class="square-button" aria-label="Clear search" hidden>${uiIcon("close")}</button><div id="search-suggestions" role="listbox" aria-label="Anime suggestions" hidden></div></form><div id="page-actions"></div></header><div id="message" role="alert" hidden></div><main id="main" tabindex="-1"></main></div><dialog id="dialog" aria-labelledby="dialog-title"></dialog>`;
   const input = document.querySelector<HTMLInputElement>("#search-input")!;
   const results = document.querySelector<HTMLElement>("#search-suggestions")!;
   const clear = document.querySelector<HTMLButtonElement>("#clear-search")!;
@@ -370,7 +370,7 @@ function shell() {
       (b.onclick = () => {
         close();
         if (b.dataset.nav === "settings") settings();
-        else if (b.dataset.nav === "history") void history();
+        else if (b.dataset.nav === "history") void watchlist();
         else if (b.dataset.nav === "watchlist") void watchlist();
         else if (b.dataset.nav === "home") void home();
         else {
@@ -446,6 +446,29 @@ async function browseFilters(token: number) {
       }),
   );
 }
+function watchEditButton(id: number, name: string) {
+  return `<button class="list-edit square-button" data-watch-edit="${id}" aria-label="Edit ${esc(name)}" title="Edit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m16 3 5 5M3 21l5-1L21 7a2 2 0 0 0-5-5L3 15z"/></svg></button>`;
+}
+function continueCards() {
+  const local = recentSeasons(state.progress, state.settings.showAdult);
+  const ids = new Set(local.map(([, p]) => p.mediaId));
+  const imported = Object.values(state.watch).filter(e => !ids.has(e.mediaId)
+    && (e.status === "CURRENT" || e.status === "REPEATING") && (state.settings.showAdult || !e.isAdult))
+    .sort((a, b) => b.updated - a.updated);
+  return [
+    ...local.map(([key, p]) => `<article class="list-card"><button class="recent-card" data-adult="${!!p.isAdult}" data-resume="${key}"><div class="cover"><img src="${esc(p.cover)}" alt="" loading="lazy"></div><strong>${esc(p.title)}</strong><small>${esc(p.episodeTitle ?? `Episode ${p.episode}`)} &middot; ${time(p.position)} / ${time(p.duration)}</small></button>${watchEditButton(p.mediaId, p.title)}</article>`),
+    ...imported.map(e => {
+      const episode = Math.min(e.count + 1, e.totalEpisodes ?? Number.MAX_SAFE_INTEGER);
+      return `<article class="list-card"><button class="recent-card" data-continue="${e.mediaId}" data-episode="${episode}"><div class="cover"><img src="${esc(e.cover)}" alt="" loading="lazy"></div><strong>${esc(e.title)}</strong><small>Episode ${episode}${e.totalEpisodes ? ` / ${e.totalEpisodes}` : ""}</small></button>${watchEditButton(e.mediaId, e.title)}</article>`;
+    }),
+  ];
+}
+function bindContinue(root: ParentNode) {
+  root.querySelectorAll<HTMLElement>("[data-resume]").forEach(button => button.onclick = () => void run(() => resumeFromHistory(button.dataset.resume!)));
+  root.querySelectorAll<HTMLElement>("[data-continue]").forEach(button => button.onclick = () => void run(async () =>
+    startEpisode(await api.media(Number(button.dataset.continue)), Number(button.dataset.episode))));
+  root.querySelectorAll<HTMLElement>("[data-watch-edit]").forEach(button => button.onclick = () => editWatch(Number(button.dataset.watchEdit)));
+}
 async function home() {
   setRoute("home");
   current = undefined;
@@ -453,9 +476,7 @@ async function home() {
   const token = ++request;
   state = await api.state();
   if (token !== request) return;
-  const recent = recentSeasons(state.progress, state.settings.showAdult)
-    .slice(0, 6)
-    .map(([, p]) => p);
+  const recent = continueCards().slice(0, 9);
   const shelves = [
     ["Trending", ""],
     ["Action", "genre:Action"],
@@ -463,19 +484,13 @@ async function home() {
     ["Adventure", "genre:Adventure"],
   ];
   document.querySelector("#main")!.innerHTML =
-    `<div class="page-heading"><h1>Home</h1><button id="refresh-home" class="quiet square-button" aria-label="Refresh">${uiIcon("refresh")}</button></div><section class="home-section"><div class="section-heading"><h2>Continue watching</h2><button id="more-history" class="quiet">View more ${uiIcon("right")}</button></div>${recent.length ? `<div class="home-grid">${recent.map((p) => `<button class="recent-card" data-adult="${!!p.isAdult}" data-resume="${p.mediaId}:${p.episode}"><div class="cover"><img src="${esc(p.cover)}" alt=""></div><strong>${esc(p.title)}</strong><small>${esc(p.episodeTitle ?? `Episode ${p.episode}`)} · ${time(p.position)} / ${time(p.duration)}</small></button>`).join("")}</div>` : '<p class="muted">Your recent watches will appear here.</p>'}</section>${shelves.map(([name], i) => `<section class="home-section" id="shelf-${i}"><div class="section-heading"><h2>${name}</h2><div class="actions"><button class="quiet shelf-more">View more ${uiIcon("right")}</button><button class="square-button shelf-back" aria-label="Previous ${name} titles" disabled>${uiIcon("left")}</button><button class="square-button shelf-next" aria-label="Next ${name} titles">${uiIcon("right")}</button></div></div><div class="home-grid shelf-items" aria-live="polite"><p class="loading">Loading…</p></div></section>`).join("")}`;
+    `<div class="page-heading"><h1>Home</h1><button id="refresh-home" class="quiet square-button" aria-label="Refresh">${uiIcon("refresh")}</button></div><section class="home-section"><div class="section-heading"><h2>Continue watching</h2><button id="more-history" class="quiet">View more ${uiIcon("right")}</button></div>${recent.length ? `<div class="home-grid">${recent.join("")}</div>` : '<p class="muted">Your recent watches will appear here.</p>'}</section>${shelves.map(([name], i) => `<section class="home-section" id="shelf-${i}"><div class="section-heading"><h2>${name}</h2><div class="actions"><button class="quiet shelf-more">View more ${uiIcon("right")}</button><button class="square-button shelf-back" aria-label="Previous ${name} titles" disabled>${uiIcon("left")}</button><button class="square-button shelf-next" aria-label="Next ${name} titles">${uiIcon("right")}</button></div></div><div class="home-grid shelf-items" aria-live="polite"><p class="loading">Loading…</p></div></section>`).join("")}`;
   movePageHeading();
   document.querySelector<HTMLElement>("#more-history")!.onclick = () =>
-    void history();
+    void watchlist();
   document.querySelector<HTMLElement>("#refresh-home")!.onclick = () =>
     void home();
-  document
-    .querySelectorAll<HTMLElement>("[data-resume]")
-    .forEach(
-      (b) =>
-        (b.onclick = () =>
-          void run(() => resumeFromHistory(b.dataset.resume!))),
-    );
+  bindContinue(document.querySelector("#main")!);
   await Promise.all(
     shelves.map(async ([name, filter], i) => {
       const el = document.querySelector<HTMLElement>(`#shelf-${i}`)!;
@@ -692,14 +707,6 @@ function renderSeries() {
           .join("")}</div></section>`
       : ""
   }`;
-  const watchButton = document.createElement("button");
-  watchButton.className = "primary";
-  watchButton.textContent = state.watch[String(m.id)] ? "Edit watch data" : "Add to watch list";
-  main.querySelector(".series > div")?.append(watchButton);
-  watchButton.onclick = () => void run(async () => {
-    if (!state.watch[String(m.id)]) state = await api.watchAdd(m.id);
-    editWatch(m.id);
-  });
   document.querySelector<HTMLElement>("#back")!.onclick = () =>
     void browseBack();
   bindMedia(main);
@@ -757,7 +764,7 @@ function renderEpisodes() {
           : e.status === "mixed"
             ? "Mixed"
             : "";
-      return `<div class="episode-row"><button class="episode" data-episode="${e.n}" ${future ? "disabled" : ""}><span class="episode-number">${String(e.n).padStart(2, "0")}</span><span>${esc(e.title)}${watched ? `<small>${time(watched.position)} / ${time(watched.duration)}</small>` : ""}</span><span class="episode-badges">${finished ? '<span class="badge watched-label">Watched</span>' : ""}${badge ? `<span class="badge ${future ? "upcoming" : ""}" title="${e.status === "filler" ? "Not canon. This episode is not adapted from the original story." : e.status === "mixed" ? "Contains both canon story and filler material." : ""}">${esc(badge)}</span>` : ""}</span></button><button data-edit-episode="${e.n}" aria-label="Edit episode ${e.n}">Edit</button></div>`;
+      return `<button class="episode" data-episode="${e.n}" ${future ? "disabled" : ""}><span class="episode-number">${String(e.n).padStart(2, "0")}</span><span>${esc(e.title)}${watched ? `<small>${time(watched.position)} / ${time(watched.duration)}</small>` : ""}</span><span class="episode-badges">${finished ? '<span class="badge watched-label">Watched</span>' : ""}${badge ? `<span class="badge ${future ? "upcoming" : ""}" title="${e.status === "filler" ? "Not canon. This episode is not adapted from the original story." : e.status === "mixed" ? "Contains both canon story and filler material." : ""}">${esc(badge)}</span>` : ""}</span></button>`;
     })
     .join(
       "",
@@ -765,10 +772,6 @@ function renderEpisodes() {
   el.querySelectorAll<HTMLButtonElement>("[data-episode]").forEach(
     (b) => (b.onclick = () => void startEpisode(m, Number(b.dataset.episode))),
   );
-  el.querySelectorAll<HTMLButtonElement>("[data-edit-episode]").forEach(b => b.onclick = () => void run(async () => {
-    if (!state.watch[String(m.id)]) state = await api.watchAdd(m.id);
-    editWatch(m.id, Number(b.dataset.editEpisode));
-  }));
   const filter = el.querySelector<HTMLInputElement>("#hide-filler");
   if (filter)
     filter.onchange = () => {
@@ -848,10 +851,20 @@ async function releasePicker(m: Media, ep: number) {
         `<p role="alert">${esc((e as Error).message)}</p>`;
   }
 }
+async function chooseRewatch(id: number): Promise<boolean> {
+  if (state.watch[String(id)]?.status !== "COMPLETED") return true;
+  const choice = await new Promise<string>(resolve => {
+    const d = dialog(`<h2 id="dialog-title">Start a full rewatch?</h2><p>Start a new watch record, or play only this episode.</p><div class="actions"><button class="primary" data-rewatch="full">Start full rewatch</button><button data-rewatch="episode">Play this episode</button></div>`);
+    d.returnValue = "";
+    d.onclose = () => { d.onclose = null; resolve(d.returnValue); };
+    d.querySelectorAll<HTMLButtonElement>("[data-rewatch]").forEach(button => button.onclick = () => d.close(button.dataset.rewatch));
+  });
+  if (choice === "full") state = await api.watchEdit(id, { startRewatch: true });
+  return choice === "full" || choice === "episode";
+}
 async function startEpisode(m: Media, ep: number) {
   if (episodeAvailability(m, ep).released === false) return;
-  if (state.watch[String(m.id)]?.status === "COMPLETED" && confirm("Start a full rewatch? Select Cancel to play only this episode."))
-    state = await api.watchEdit(m.id, { startRewatch: true });
+  if (!await chooseRewatch(m.id)) return;
   if (state.settings.sourceMode === "manual") {
     await releasePicker(m, ep);
     return;
@@ -935,49 +948,8 @@ async function chooseFile(
 async function resumeFromHistory(key: string) {
   const saved = state.progress[key];
   if (!saved) return;
-  if (state.watch[String(saved.mediaId)]?.status === "COMPLETED" && confirm("Start a full rewatch? Select Cancel to play only this episode."))
-    state = await api.watchEdit(saved.mediaId, { startRewatch: true });
+  if (!await chooseRewatch(saved.mediaId)) return;
   await api.resume(key);
-}
-async function history() {
-  setRoute("history");
-  request++;
-  current = undefined;
-  activeNav("history");
-  state = await api.state();
-  const entries = recentSeasons(state.progress, state.settings.showAdult);
-  document.querySelector("#main")!.innerHTML =
-    `<div class="page-heading"><div><h1>Continue watching</h1></div>${entries.length ? '<button id="clear-watch-history" class="quiet">Clear watch history</button>' : ""}</div>${entries.length ? `<div class="history-list">${entries.map(([key, p]) => `<article class="history-row"><img src="${esc(p.cover)}" alt=""><div><button class="text-link" data-media="${p.mediaId}">${esc(p.title)}</button><p>${esc(p.episodeTitle ?? `Episode ${p.episode}`)}${p.episodeTitle && p.episodeTitle !== `Episode ${p.episode}` ? ` · Episode ${p.episode}` : ""}</p><small>${time(p.position)} / ${time(p.duration)}</small></div><button class="primary" data-resume="${key}">Resume</button><button class="remove-history" data-remove="${key}" aria-label="Remove ${esc(p.title)} episode ${p.episode} from history" title="Remove from history">${uiIcon("close")}</button></article>`).join("")}</div>` : '<div class="empty"><h2>No saved playback</h2><p>Your watch progress will appear here.</p><button id="browse">Browse anime</button></div>'}`;
-  movePageHeading();
-  bindMedia();
-  document.querySelectorAll<HTMLButtonElement>("[data-resume]").forEach(
-    (b) =>
-      (b.onclick = () => {
-        b.disabled = true;
-        b.textContent = "Connecting…";
-        void run(() => resumeFromHistory(b.dataset.resume!)).finally(() => {
-          b.disabled = false;
-          b.textContent = "Resume";
-        });
-      }),
-  );
-  document.querySelectorAll<HTMLButtonElement>("[data-remove]").forEach(
-    (b) =>
-      (b.onclick = () =>
-        run(async () => {
-          await api.removeHistory(b.dataset.remove!);
-          await history();
-        })),
-  );
-  const clear = document.querySelector<HTMLElement>("#clear-watch-history");
-  if (clear)
-    clear.onclick = () =>
-      run(async () => {
-        await api.clear("history");
-        await history();
-      });
-  const browse = document.querySelector<HTMLElement>("#browse");
-  if (browse) browse.onclick = () => void discover();
 }
 const watchStatuses: [WatchStatus, string][] = [["CURRENT", "Watching"], ["REPEATING", "Rewatching"], ["COMPLETED", "Completed"], ["PAUSED", "Paused"], ["DROPPED", "Dropped"], ["PLANNING", "Planning"]];
 async function watchlist() {
@@ -986,46 +958,98 @@ async function watchlist() {
   state = await api.state();
   const entries = Object.values(state.watch).filter(e => state.settings.showAdult || !e.isAdult).sort((a, b) => b.updated - a.updated);
   const main = document.querySelector("#main")!;
-  main.innerHTML = `<div class="page-heading"><h1>Watch list</h1><button id="watch-add" class="primary">Add anime</button></div>${watchStatuses.map(([status, name]) => `<section class="home-section"><h2>${name}</h2><div class="history-list">${entries.filter(e => e.status === status).map(e => `<article class="history-row"><img src="${esc(e.cover)}" alt=""><div><button class="text-link" data-media="${e.mediaId}">${esc(e.title)}</button><p>${e.count} watched${e.totalEpisodes ? ` / ${e.totalEpisodes}` : ""} episodes</p><small>${e.runs.length} watch record${e.runs.length === 1 ? "" : "s"}</small></div><button data-watch-edit="${e.mediaId}">Edit</button></article>`).join("") || '<p class="muted">No anime here.</p>'}</div></section>`).join("")}`;
+  main.innerHTML = `<div class="page-heading"><h1>Lists</h1></div>${watchStatuses.filter(([status]) => status !== "REPEATING").map(([status, label]) => { const name = status === "CURRENT" ? "Continue watching" : label; return `<section class="home-section"><div class="section-heading"><h2>${name}</h2><div class="actions"><button data-list-all>View all</button><button data-list-step="-1" aria-label="Previous ${name}">&#8249;</button><button data-list-step="1" aria-label="Next ${name}">&#8250;</button></div></div><div class="home-grid list-grid">${(status === "CURRENT" ? continueCards() : entries.filter(e => e.status === status).map(e => {
+    const saved = Object.values(state.progress).filter(p => p.mediaId === e.mediaId).sort((a, b) => b.updated - a.updated)[0];
+    const latest = Object.entries(e.runs.at(-1)?.episodes ?? {}).sort((a, b) => b[1].updated - a[1].updated)[0];
+    const episode = latest && latest[1].updated > e.countUpdated ? Number(latest[0]) : e.count;
+    const info = episode > 0 ? `Episode ${episode}${e.totalEpisodes ? ` / ${e.totalEpisodes}` : ""}${saved?.episode === episode && saved.episodeTitle && saved.episodeTitle !== `Episode ${episode}` ? ` \u00b7 ${saved.episodeTitle}` : ""}` : (e.totalEpisodes ? `${e.totalEpisodes} episodes` : "Not started");
+    return `<article class="list-card"><button class="poster" data-media="${e.mediaId}" aria-label="Open ${esc(e.title)}"><div class="cover"><img src="${esc(e.cover)}" alt="" loading="lazy" decoding="async"></div><h3>${esc(e.title)}</h3><p>${esc(info)}</p></button>${watchEditButton(e.mediaId, e.title)}</article>`;
+  })).join("") || '<p class="muted">No anime here.</p>'}</div></section>`; }).join("")}`;
+  movePageHeading();
   bindMedia(main);
-  main.querySelector<HTMLElement>("#watch-add")!.onclick = () => void discover(1);
-  main.querySelectorAll<HTMLElement>("[data-watch-edit]").forEach(button => button.onclick = () => editWatch(Number(button.dataset.watchEdit)));
+  bindContinue(main);
+  main.querySelectorAll<HTMLElement>(".home-section").forEach(section => {
+    const cards = [...section.querySelectorAll<HTMLElement>(".list-card")];
+    let page = 0, all = false;
+    const update = () => {
+      cards.forEach((card, i) => card.hidden = !all && Math.floor(i / 9) !== page);
+      section.querySelectorAll<HTMLButtonElement>("[data-list-step]").forEach(button => {
+        button.disabled = all || (Number(button.dataset.listStep) < 0 ? page === 0 : (page + 1) * 9 >= cards.length);
+      });
+      const button = section.querySelector<HTMLButtonElement>("[data-list-all]")!;
+      button.hidden = cards.length <= 9;
+      button.textContent = all ? "Show less" : "View all";
+    };
+    section.querySelectorAll<HTMLButtonElement>("[data-list-step]").forEach(button => button.onclick = () => { page += Number(button.dataset.listStep); update(); });
+    section.querySelector<HTMLButtonElement>("[data-list-all]")!.onclick = () => { all = !all; update(); };
+    update();
+  });
 }
-function editWatch(id: number, episode?: number) {
+function editWatch(id: number) {
   const entry = state.watch[String(id)];
   if (!entry) return;
-  const saved = episode ? entry.runs.at(-1)?.episodes[String(episode)] : undefined;
-  const d = dialog(`<h2 id="dialog-title">${esc(entry.title)}</h2><form id="watch-form"><label>Watch status<select name="status">${watchStatuses.map(([value, name]) => `<option value="${value}" ${entry.status === value ? "selected" : ""}>${name}</option>`).join("")}</select></label><label>Watched episode count<input name="count" type="number" min="0" max="100000" value="${entry.count}" required></label><label>Episode number<input name="episode" type="number" min="1" max="100000" value="${episode ?? ""}"></label><label class="check"><input name="watched" type="checkbox" ${saved?.watched ? "checked" : ""}> Episode watched</label><label>Playback time in seconds<input name="position" type="number" min="0" step="0.1" value="${saved?.position ?? 0}"></label><label>Duration in seconds<input name="duration" type="number" min="0" step="0.1" value="${saved?.duration ?? 0}"></label><div class="actions"><button class="primary">Save watch data</button>${entry.status === "COMPLETED" ? '<button type="button" id="start-rewatch">Start rewatch</button>' : ""}</div></form><p class="muted">Earlier watch records stay saved.</p>`);
+  const d = dialog(`<h2 id="dialog-title">${esc(entry.title)}</h2><form id="watch-form"><label>Watch status<select name="status">${watchStatuses.map(([value, name]) => `<option value="${value}" ${entry.status === value ? "selected" : ""}>${name}</option>`).join("")}</select></label><label>Episode progress<input name="count" type="number" min="0" step="1" ${entry.totalEpisodes != null ? `max="${entry.totalEpisodes}"` : ""} value="${entry.count}" required></label></form><hr><button id="delete-watch">Delete entry</button>`);
+  d.querySelector<HTMLButtonElement>("#delete-watch")!.onclick = () => void run(async () => {
+    state = await api.watchDelete(id);
+    d.onclose = null;
+    d.close();
+    if (route === "home") await home();
+    else if (route === "watchlist") await watchlist();
+    else if (route === "series") renderEpisodes();
+    showToast("Entry deleted from Nen.");
+  });
   const form = d.querySelector<HTMLFormElement>("#watch-form")!;
-  form.onsubmit = e => void run(async () => {
-    e.preventDefault();
+  form.onsubmit = e => { e.preventDefault(); d.close(); };
+  d.onclose = () => {
+    d.onclose = null;
     const data = new FormData(form);
     const status = String(data.get("status")) as WatchStatus;
-    if (status === "COMPLETED" && entry.status !== "COMPLETED" && !confirm(`Mark all of ${entry.title} as Completed?`)) return;
-    const ep = Number(data.get("episode"));
-    state = await api.watchEdit(id, { status, count: Number(data.get("count")), ...(ep > 0 ? { episode: ep, watched: data.has("watched"), position: Number(data.get("position")), duration: Number(data.get("duration")) } : {}) });
-    d.close();
-    if (route === "watchlist") await watchlist();
-    if (route === "series") renderEpisodes();
-  });
-  const rewatch = d.querySelector<HTMLElement>("#start-rewatch");
-  if (rewatch) rewatch.onclick = () => void run(async () => {
-    state = await api.watchEdit(id, { startRewatch: true });
-    d.close();
-    if (route === "watchlist") await watchlist();
-    if (route === "series") renderEpisodes();
-  });
+    const value = Number(data.get("count"));
+    const count = Number.isFinite(value)
+      ? Math.max(0, Math.min(entry.totalEpisodes ?? Number.MAX_SAFE_INTEGER, Math.floor(value))) : entry.count;
+    if (status === entry.status && count === entry.count) return;
+    void run(async () => {
+      state = await api.watchEdit(id, { status, count });
+      if (route === "watchlist") await watchlist();
+      if (route === "home") await home();
+      if (route === "series" && current?.id === id) renderEpisodes();
+    });
+  };
 }
-async function showSyncReview() {
+async function showSyncReview(firstConnect = false) {
   const preview = await api.anilistPreview();
-  const d = dialog(`<h2 id="dialog-title">Review AniList sync</h2><p>${preview.first ? "First sync. " : ""}${preview.changes.length} changed values. Choose a side for each conflict.</p><div class="sync-changes">${preview.changes.map((row, i) => `<label>${esc(row.title)} · ${row.field} <small>Nen: ${esc(row.local ?? "none")} · AniList: ${esc(row.remote ?? "none")}</small><select data-choice="${i}"><option value="" ${!row.choice ? "selected" : ""}>Choose a side</option><option value="local" ${row.choice === "local" ? "selected" : ""}>Use Nen</option><option value="remote" ${row.choice === "remote" ? "selected" : ""}>Use AniList</option></select></label>`).join("") || '<p>No changes to sync.</p>'}</div><button id="apply-sync" class="primary">Apply sync</button>`);
+  const choices: SyncChange[] = preview.changes.map(row => ({ ...row }));
+  const conflicts = choices.map((row, i) => ({ row, i })).filter(({ row }) => row.conflict);
+  if (!conflicts.length) {
+    state = await api.anilistApply(choices);
+    showToast(choices.length ? "AniList sync complete." : firstConnect ? "Connected account. No entries to sync." : "No new entries to sync.");
+    if (route === "watchlist") await watchlist();
+    if (route === "home") await home();
+    if (route === "series") renderEpisodes();
+    return;
+  }
+  const d = dialog(`<h2 id="dialog-title">Review AniList sync</h2><p>${conflicts.length ? "Choose which values to keep." : "No conflicts. Your lists are ready to sync."}</p><div class="sync-changes">${conflicts.map(({ row, i }) => `<div class="sync-row"><span>${esc(row.title)} - ${row.field === "count" ? "Episode progress" : row.field === "status" ? "Watch status" : "Rewatches"}</span><small>Nen: ${esc(row.local)} &middot; AniList: ${esc(row.remote)}</small><div class="actions" role="group" aria-label="Choose values for ${esc(row.title)}"><button type="button" data-choice="${i}" data-side="local" aria-pressed="${row.choice === "local"}">Use Nen</button><button type="button" data-choice="${i}" data-side="remote" aria-pressed="${row.choice === "remote"}">Use AniList</button></div></div>`).join("")}</div>${conflicts.length ? '<div class="actions sync-select-all" role="group" aria-label="Select all"><span>Select all</span><button type="button" data-select-all="local">Nen</button><button type="button" data-select-all="remote">AniList</button></div>' : ""}<button id="apply-sync" class="primary">Apply sync</button>`);
+  const updateSelectAll = () => d.querySelectorAll<HTMLButtonElement>("[data-select-all]").forEach(button =>
+    button.setAttribute("aria-pressed", String(conflicts.every(({ row }) => row.choice === button.dataset.selectAll))));
+  updateSelectAll();
+  d.querySelectorAll<HTMLButtonElement>("[data-choice]").forEach(button => {
+    button.onclick = () => {
+      choices[Number(button.dataset.choice)].choice = button.dataset.side as "local" | "remote";
+      d.querySelectorAll<HTMLButtonElement>(`[data-choice="${button.dataset.choice}"]`).forEach(option =>
+        option.setAttribute("aria-pressed", String(option === button)));
+      updateSelectAll();
+    };
+  });
+  d.querySelectorAll<HTMLButtonElement>("[data-select-all]").forEach(button => {
+    button.onclick = () => d.querySelectorAll<HTMLButtonElement>(`[data-choice][data-side="${button.dataset.selectAll}"]`).forEach(option => option.click());
+  });
   d.querySelector<HTMLElement>("#apply-sync")!.onclick = () => void run(async () => {
-    const choices: SyncChange[] = preview.changes.map((row, i) => ({ ...row, choice: (d.querySelector<HTMLSelectElement>(`[data-choice="${i}"]`)!.value || undefined) as "local" | "remote" | undefined }));
     if (choices.some(row => !row.choice)) { showToast("Choose a side for each change.", d); return; }
     state = await api.anilistApply(choices);
     d.close();
     showToast("AniList sync complete.");
     if (route === "watchlist") await watchlist();
+    if (route === "home") await home();
     if (route === "series") renderEpisodes();
   });
 }
@@ -1048,13 +1072,13 @@ function settings() {
   const options = (value: string, sub = false) =>
     `${sub ? `<option value="no" ${value === "no" ? "selected" : ""}>Off</option>` : ""}<option value="" ${value === "" ? "selected" : ""}>Use file default</option>${languages.map(([code, name]) => `<option value="${code}" ${value.split(",")[0] === code ? "selected" : ""}>${name}</option>`).join("")}`;
   const d = dialog(
-    `<h2 id="dialog-title">Settings</h2><form id="settings"><label>Appearance<select name="theme">${["system", "light", "dark"].map((v) => `<option value="${v}" ${s.theme === v ? "selected" : ""}>${v === "system" ? "Use system theme" : v[0].toUpperCase() + v.slice(1)}</option>`).join("")}</select></label><div class="field-pair"><label>Preferred audio<select name="audio">${options(s.audio)}</select></label><label>Preferred subtitles<select name="subtitles">${options(s.subtitles, true)}</select></label></div><label>Choose a source<select name="sourceMode"><option value="auto" ${s.sourceMode !== "manual" ? "selected" : ""}>Find the best source automatically</option><option value="manual" ${s.sourceMode === "manual" ? "selected" : ""}>Always let me choose</option></select></label><label>Search sources<select name="source">${["all", "Nyaa", "Bangumi Moe"].map((v) => `<option value="${v}" ${s.source === v ? "selected" : ""}>${v === "all" ? "All sources" : v}</option>`).join("")}</select></label><label>Preferred quality</label><details class="quality-dropdown"><summary id="quality-summary">${(s.qualities ?? [1080, 720, 480, 360]).map((q) => q + "p").join(", ")}</summary><fieldset><legend class="sr-only">Allowed video qualities</legend>${[2160, 1440, 1080, 720, 480, 360].map((q) => `<label class="check"><input name="qualities" type="checkbox" value="${q}" ${(s.qualities ?? [1080, 720, 480, 360]).includes(q) ? "checked" : ""}> ${q}p${q === 2160 ? " (4K)" : ""}</label>`).join("")}</fieldset></details><label class="check"><input name="autoNext" type="checkbox" ${s.autoNext ? "checked" : ""}> Auto play next episode</label><label class="check"><input name="autoSkip" type="checkbox" ${s.autoSkip ? "checked" : ""}> Automatically skip intros and outros</label><label class="check"><input name="showAdult" type="checkbox" ${s.showAdult ? "checked" : ""}> Show NSFW content</label><label class="check"><input name="hideZeroSeeds" type="checkbox" ${s.hideZeroSeeds !== false ? "checked" : ""}> Hide videos with 0 seeders</label><hr><h3 class="local-data-heading">Updates</h3><div class="actions update-actions"><button id="check-updates" type="button">Check for updates</button><label class="check"><input id="development-builds" name="developmentBuilds" type="checkbox" ${s.developmentBuilds ? "checked" : ""}> Use development builds</label></div></form><hr><h3 class="local-data-heading">Local data</h3><div class="actions"><button id="clear-cache">Clear downloaded cache</button><button id="clear-history">Clear watch history</button></div><p id="settings-message" role="status"></p>`,
+    `<h2 id="dialog-title">Settings</h2><form id="settings"><label>Appearance<select name="theme">${["system", "light", "dark"].map((v) => `<option value="${v}" ${s.theme === v ? "selected" : ""}>${v === "system" ? "Use system theme" : v[0].toUpperCase() + v.slice(1)}</option>`).join("")}</select></label><div class="field-pair"><label>Preferred audio<select name="audio">${options(s.audio)}</select></label><label>Preferred subtitles<select name="subtitles">${options(s.subtitles, true)}</select></label></div><label>Choose a source<select name="sourceMode"><option value="auto" ${s.sourceMode !== "manual" ? "selected" : ""}>Find the best source automatically</option><option value="manual" ${s.sourceMode === "manual" ? "selected" : ""}>Always let me choose</option></select></label><label>Search sources<select name="source">${["all", "Nyaa", "Bangumi Moe"].map((v) => `<option value="${v}" ${s.source === v ? "selected" : ""}>${v === "all" ? "All sources" : v}</option>`).join("")}</select></label><label>Preferred quality</label><details class="quality-dropdown"><summary id="quality-summary">${(s.qualities ?? [1080, 720, 480, 360]).map((q) => q + "p").join(", ")}</summary><fieldset><legend class="sr-only">Allowed video qualities</legend>${[2160, 1440, 1080, 720, 480, 360].map((q) => `<label class="check"><input name="qualities" type="checkbox" value="${q}" ${(s.qualities ?? [1080, 720, 480, 360]).includes(q) ? "checked" : ""}> ${q}p${q === 2160 ? " (4K)" : ""}</label>`).join("")}</fieldset></details><label class="check"><input name="autoNext" type="checkbox" ${s.autoNext ? "checked" : ""}> Auto play next episode</label><label class="check"><input name="autoSkip" type="checkbox" ${s.autoSkip ? "checked" : ""}> Automatically skip intros and outros</label><label class="check"><input name="showAdult" type="checkbox" ${s.showAdult ? "checked" : ""}> Show NSFW content</label><label class="check"><input name="hideZeroSeeds" type="checkbox" ${s.hideZeroSeeds !== false ? "checked" : ""}> Hide videos with 0 seeders</label><hr><h3 class="local-data-heading">Updates</h3><div class="actions update-actions"><button id="check-updates" type="button">Check for updates</button><label class="check"><input id="development-builds" name="developmentBuilds" type="checkbox" ${s.developmentBuilds ? "checked" : ""}> Use development builds</label></div></form><p id="settings-message" role="status"></p>`,
   );
   d.querySelector(".dialog-header .eyebrow")!.innerHTML = `<strong>NEN</strong> - ${esc(state.version)}`;
   const form = d.querySelector<HTMLFormElement>("#settings")!;
   const message = d.querySelector<HTMLElement>("#settings-message")!;
   const transfer = document.createElement("section");
-  transfer.innerHTML = `<hr><h3>Watch data</h3><p>The JSON file has watch records and playback times. It has no video source or AniList token.</p><div class="actions"><button id="watch-export" type="button">Export watch data</button><button id="watch-import" type="button">Import watch data</button></div><hr><h3>AniList</h3><p id="anilist-state">${state.anilist.connected ? `Connected as ${esc(state.anilist.user)}. ${state.anilist.lastSync ? `Last sync: ${new Date(state.anilist.lastSync).toLocaleString()}.` : "No sync yet."}` : "Not connected."} ${esc(state.anilist.error ?? "")}</p><div class="actions">${state.anilist.connected ? '<button id="anilist-sync" type="button">Sync now</button><button id="anilist-disconnect" type="button">Disconnect</button>' : '<button id="anilist-connect" type="button">Connect AniList</button>'}</div>`;
+  transfer.innerHTML = `<hr><h3 class="local-data-heading">AniList</h3><p id="anilist-state" ${!state.anilist.connected && !state.anilist.error ? "hidden" : ""}>${state.anilist.connected ? `Connected as ${esc(state.anilist.user)}. ${state.anilist.lastSync ? `Last sync: ${new Date(state.anilist.lastSync).toLocaleString()}.` : "No sync yet."}` : ""} ${esc(state.anilist.error ?? "")}</p><div class="actions">${state.anilist.connected ? '<button id="anilist-sync" type="button">Sync now</button><button id="anilist-disconnect" type="button">Disconnect</button>' : '<button id="anilist-connect" type="button">Connect AniList</button>'}</div><hr><h3 class="local-data-heading">Local data</h3><div class="actions"><button id="clear-cache">Clear downloaded cache</button><button id="clear-history">Clear watch history</button></div><div class="actions watch-transfer-actions"><button id="watch-export" type="button">Export watch data</button><button id="watch-import" type="button">Import watch data</button></div>`;
   message.before(transfer);
   transfer.querySelector<HTMLElement>("#watch-export")!.onclick = () => void run(async () => { const path = await api.watchExport(); if (path) showToast(`Saved watch data to ${path}`, d); });
   transfer.querySelector<HTMLElement>("#watch-import")!.onclick = () => void run(async () => {
@@ -1069,11 +1093,29 @@ function settings() {
       showToast("Watch data imported.");
       if (state.anilist.connected) await showSyncReview();
       else if (route === "watchlist") await watchlist();
+      if (route === "home") await home();
     });
   });
-  transfer.querySelector<HTMLElement>("#anilist-connect")?.addEventListener("click", () => void run(async () => { await api.anilistConnect(); state = await api.state(); d.close(); await showSyncReview(); }));
+  const connectAniList = () => void run(async () => { await api.anilistConnect(); state = await api.state(); d.close(); await showSyncReview(true); });
+  transfer.querySelector<HTMLElement>("#anilist-connect")?.addEventListener("click", connectAniList);
   transfer.querySelector<HTMLElement>("#anilist-sync")?.addEventListener("click", () => void run(async () => { d.close(); await showSyncReview(); }));
-  transfer.querySelector<HTMLElement>("#anilist-disconnect")?.addEventListener("click", () => void run(async () => { state = await api.anilistDisconnect(); d.close(); showToast("AniList disconnected."); }));
+  transfer.querySelector<HTMLButtonElement>("#anilist-disconnect")?.addEventListener("click", event => void run(async () => {
+    const button = event.currentTarget as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      state = await api.anilistDisconnect();
+      transfer.querySelector<HTMLElement>("#anilist-state")!.textContent = "";
+      transfer.querySelector<HTMLElement>("#anilist-state")!.hidden = true;
+      transfer.querySelector("#anilist-sync")?.remove();
+      button.id = "anilist-connect";
+      button.textContent = "Connect AniList";
+      const connect = button.cloneNode(true) as HTMLButtonElement;
+      connect.disabled = false;
+      connect.onclick = connectAniList;
+      button.replaceWith(connect);
+      showToast("AniList disconnected.", d);
+    } finally { button.disabled = false; }
+  }));
   const initialAdult = s.showAdult;
   let saveQueue = Promise.resolve();
   const save = () => {
@@ -1143,7 +1185,7 @@ function settings() {
           .querySelectorAll<HTMLElement>(".shelf-items")
           .forEach((el) => el.dispatchEvent(new Event("catalog-refresh")));
       else if (route === "discover") void discover(page);
-      else if (route === "history") void history();
+      else if (route === "history") void watchlist();
     });
   };
   for (const kind of ["cache", "history"] as const)
@@ -1155,7 +1197,7 @@ function settings() {
           kind === "cache"
             ? "Downloaded cache cleared."
             : "Watch history cleared.";
-        if (route === "history") await history();
+        if (route === "history") await watchlist();
       });
 }
 
@@ -1258,8 +1300,10 @@ async function start() {
         }),
       next: (p) =>
         void run(async () => {
-          if (p.mediaId && p.nextEpisode)
+          if (p.mediaId && p.nextEpisode) {
+            if (p.episode) state = await api.watchEdit(p.mediaId, { episode: p.episode, watched: true });
             await startEpisode(await api.media(p.mediaId), p.nextEpisode);
+          }
         }),
       edit: editMarker,
       error,
@@ -1278,6 +1322,7 @@ async function start() {
     api.onWatchState(value => {
       state = value;
       if (route === "watchlist") void watchlist();
+      else if (route === "home") void home();
       else if (route === "series") renderEpisodes();
     });
     api.onPlayback((p) => {
@@ -1286,7 +1331,7 @@ async function start() {
       if (!p.active)
         void api.state().then((value) => {
           state = value;
-          if (route === "history") void history();
+          if (route === "history") void watchlist();
           else if (route === "home") void home();
           else if (route === "series") renderEpisodes();
         });
