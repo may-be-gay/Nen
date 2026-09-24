@@ -18,6 +18,9 @@ import type {
   Playback,
   SegmentType,
   EpisodePage,
+  WatchEntry,
+  WatchStatus,
+  SyncChange,
 } from "./shared";
 const api = window.nen;
 document.addEventListener(
@@ -108,6 +111,7 @@ async function browseBack(direction: "back" | "forward" = "back") {
     if (previous.route === "series" && previous.mediaId)
       await openMedia(previous.mediaId);
     else if (previous.route === "history") await history();
+    else if (previous.route === "watchlist") await watchlist();
     else if (previous.route === "discover") await discover(page);
     else await home();
   } finally {
@@ -124,6 +128,8 @@ if (!playerMode)
 const backToList = () =>
   seriesReturn === "home"
     ? home()
+    : seriesReturn === "watchlist"
+      ? watchlist()
     : seriesReturn === "history"
       ? history()
       : discover(page);
@@ -217,7 +223,7 @@ const getOptions = () =>
     throw e;
   }));
 function shell() {
-  root.innerHTML = `<aside class="sidebar"><nav aria-label="Main"><button data-nav="home">${uiIcon("home")} Home</button><button data-nav="history">${uiIcon("history")} Continue watching</button><button data-nav="browse">${uiIcon("browse")} Browse</button></nav><div class="sidebar-bottom"><button data-nav="settings">${uiIcon("settings")} Settings</button></div></aside><div class="workspace"><header class="topbar"><div id="page-title"></div><form id="search" role="search"><label class="sr-only" for="search-input">Search anime</label>${uiIcon("search")}<input id="search-input" type="text" role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" aria-expanded="false" placeholder="Search for anime" autocomplete="off" maxlength="200"><button type="button" id="clear-search" class="square-button" aria-label="Clear search" hidden>${uiIcon("close")}</button><div id="search-suggestions" role="listbox" aria-label="Anime suggestions" hidden></div></form><div id="page-actions"></div></header><div id="message" role="alert" hidden></div><main id="main" tabindex="-1"></main></div><dialog id="dialog" aria-labelledby="dialog-title"></dialog>`;
+  root.innerHTML = `<aside class="sidebar"><nav aria-label="Main"><button data-nav="home">${uiIcon("home")} Home</button><button data-nav="history">${uiIcon("history")} Continue watching</button><button data-nav="watchlist">${uiIcon("history")} Watch list</button><button data-nav="browse">${uiIcon("browse")} Browse</button></nav><div class="sidebar-bottom"><button data-nav="settings">${uiIcon("settings")} Settings</button></div></aside><div class="workspace"><header class="topbar"><div id="page-title"></div><form id="search" role="search"><label class="sr-only" for="search-input">Search anime</label>${uiIcon("search")}<input id="search-input" type="text" role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" aria-expanded="false" placeholder="Search for anime" autocomplete="off" maxlength="200"><button type="button" id="clear-search" class="square-button" aria-label="Clear search" hidden>${uiIcon("close")}</button><div id="search-suggestions" role="listbox" aria-label="Anime suggestions" hidden></div></form><div id="page-actions"></div></header><div id="message" role="alert" hidden></div><main id="main" tabindex="-1"></main></div><dialog id="dialog" aria-labelledby="dialog-title"></dialog>`;
   const input = document.querySelector<HTMLInputElement>("#search-input")!;
   const results = document.querySelector<HTMLElement>("#search-suggestions")!;
   const clear = document.querySelector<HTMLButtonElement>("#clear-search")!;
@@ -365,6 +371,7 @@ function shell() {
         close();
         if (b.dataset.nav === "settings") settings();
         else if (b.dataset.nav === "history") void history();
+        else if (b.dataset.nav === "watchlist") void watchlist();
         else if (b.dataset.nav === "home") void home();
         else {
           mode = "trending";
@@ -685,6 +692,14 @@ function renderSeries() {
           .join("")}</div></section>`
       : ""
   }`;
+  const watchButton = document.createElement("button");
+  watchButton.className = "primary";
+  watchButton.textContent = state.watch[String(m.id)] ? "Edit watch data" : "Add to watch list";
+  main.querySelector(".series > div")?.append(watchButton);
+  watchButton.onclick = () => void run(async () => {
+    if (!state.watch[String(m.id)]) state = await api.watchAdd(m.id);
+    editWatch(m.id);
+  });
   document.querySelector<HTMLElement>("#back")!.onclick = () =>
     void browseBack();
   bindMedia(main);
@@ -726,9 +741,9 @@ function renderEpisodes() {
   const el = document.querySelector("#episodes")!;
   el.innerHTML = `<div class="section-heading"><h2>${m.format === "MOVIE" ? "Film" : "Episodes"} </h2><div class="actions"><button id="episode-order" aria-label="Episode order">${descendingEpisodes ? "Descending" : "Ascending"}</button>${labelData?.items.some((e) => e.status === "filler") ? `<label class="check"><input id="hide-filler" type="checkbox" ${hideFiller ? "checked" : ""}> Hide filler</label>` : ""}</div></div>${labelData?.needsMapping && offset === undefined ? '<button id="mapping" class="quiet">Set episode numbering for filler labels</button>' : ""}<div class="episode-list">${items
     .map((e) => {
-      const watched = state.progress[`${m.id}:${e.n}`];
+      const watched = state.watch[String(m.id)]?.runs.at(-1)?.episodes[String(e.n)] ?? state.progress[`${m.id}:${e.n}`];
       const future = e.released === false;
-      const finished = isWatched(watched);
+      const finished = watched?.watched === true;
       const date = e.airingAt
         ? new Date(e.airingAt * 1000).toLocaleDateString(undefined, {
             month: "short",
@@ -742,7 +757,7 @@ function renderEpisodes() {
           : e.status === "mixed"
             ? "Mixed"
             : "";
-      return `<button class="episode" data-episode="${e.n}" ${future ? "disabled" : ""}><span class="episode-number">${String(e.n).padStart(2, "0")}</span><span>${esc(e.title)}${watched ? `<small>${time(watched.position)} / ${time(watched.duration)}</small>` : ""}</span><span class="episode-badges">${finished ? '<span class="badge watched-label">Watched</span>' : ""}${badge ? `<span class="badge ${future ? "upcoming" : ""}" title="${e.status === "filler" ? "Not canon. This episode is not adapted from the original story." : e.status === "mixed" ? "Contains both canon story and filler material." : ""}">${esc(badge)}</span>` : ""}</span></button>`;
+      return `<div class="episode-row"><button class="episode" data-episode="${e.n}" ${future ? "disabled" : ""}><span class="episode-number">${String(e.n).padStart(2, "0")}</span><span>${esc(e.title)}${watched ? `<small>${time(watched.position)} / ${time(watched.duration)}</small>` : ""}</span><span class="episode-badges">${finished ? '<span class="badge watched-label">Watched</span>' : ""}${badge ? `<span class="badge ${future ? "upcoming" : ""}" title="${e.status === "filler" ? "Not canon. This episode is not adapted from the original story." : e.status === "mixed" ? "Contains both canon story and filler material." : ""}">${esc(badge)}</span>` : ""}</span></button><button data-edit-episode="${e.n}" aria-label="Edit episode ${e.n}">Edit</button></div>`;
     })
     .join(
       "",
@@ -750,6 +765,10 @@ function renderEpisodes() {
   el.querySelectorAll<HTMLButtonElement>("[data-episode]").forEach(
     (b) => (b.onclick = () => void startEpisode(m, Number(b.dataset.episode))),
   );
+  el.querySelectorAll<HTMLButtonElement>("[data-edit-episode]").forEach(b => b.onclick = () => void run(async () => {
+    if (!state.watch[String(m.id)]) state = await api.watchAdd(m.id);
+    editWatch(m.id, Number(b.dataset.editEpisode));
+  }));
   const filter = el.querySelector<HTMLInputElement>("#hide-filler");
   if (filter)
     filter.onchange = () => {
@@ -831,6 +850,8 @@ async function releasePicker(m: Media, ep: number) {
 }
 async function startEpisode(m: Media, ep: number) {
   if (episodeAvailability(m, ep).released === false) return;
+  if (state.watch[String(m.id)]?.status === "COMPLETED" && confirm("Start a full rewatch? Select Cancel to play only this episode."))
+    state = await api.watchEdit(m.id, { startRewatch: true });
   if (state.settings.sourceMode === "manual") {
     await releasePicker(m, ep);
     return;
@@ -914,6 +935,8 @@ async function chooseFile(
 async function resumeFromHistory(key: string) {
   const saved = state.progress[key];
   if (!saved) return;
+  if (state.watch[String(saved.mediaId)]?.status === "COMPLETED" && confirm("Start a full rewatch? Select Cancel to play only this episode."))
+    state = await api.watchEdit(saved.mediaId, { startRewatch: true });
   await api.resume(key);
 }
 async function history() {
@@ -956,6 +979,56 @@ async function history() {
   const browse = document.querySelector<HTMLElement>("#browse");
   if (browse) browse.onclick = () => void discover();
 }
+const watchStatuses: [WatchStatus, string][] = [["CURRENT", "Watching"], ["REPEATING", "Rewatching"], ["COMPLETED", "Completed"], ["PAUSED", "Paused"], ["DROPPED", "Dropped"], ["PLANNING", "Planning"]];
+async function watchlist() {
+  setRoute("watchlist");
+  activeNav("watchlist");
+  state = await api.state();
+  const entries = Object.values(state.watch).filter(e => state.settings.showAdult || !e.isAdult).sort((a, b) => b.updated - a.updated);
+  const main = document.querySelector("#main")!;
+  main.innerHTML = `<div class="page-heading"><h1>Watch list</h1><button id="watch-add" class="primary">Add anime</button></div>${watchStatuses.map(([status, name]) => `<section class="home-section"><h2>${name}</h2><div class="history-list">${entries.filter(e => e.status === status).map(e => `<article class="history-row"><img src="${esc(e.cover)}" alt=""><div><button class="text-link" data-media="${e.mediaId}">${esc(e.title)}</button><p>${e.count} watched${e.totalEpisodes ? ` / ${e.totalEpisodes}` : ""} episodes</p><small>${e.runs.length} watch record${e.runs.length === 1 ? "" : "s"}</small></div><button data-watch-edit="${e.mediaId}">Edit</button></article>`).join("") || '<p class="muted">No anime here.</p>'}</div></section>`).join("")}`;
+  bindMedia(main);
+  main.querySelector<HTMLElement>("#watch-add")!.onclick = () => void discover(1);
+  main.querySelectorAll<HTMLElement>("[data-watch-edit]").forEach(button => button.onclick = () => editWatch(Number(button.dataset.watchEdit)));
+}
+function editWatch(id: number, episode?: number) {
+  const entry = state.watch[String(id)];
+  if (!entry) return;
+  const saved = episode ? entry.runs.at(-1)?.episodes[String(episode)] : undefined;
+  const d = dialog(`<h2 id="dialog-title">${esc(entry.title)}</h2><form id="watch-form"><label>Watch status<select name="status">${watchStatuses.map(([value, name]) => `<option value="${value}" ${entry.status === value ? "selected" : ""}>${name}</option>`).join("")}</select></label><label>Watched episode count<input name="count" type="number" min="0" max="100000" value="${entry.count}" required></label><label>Episode number<input name="episode" type="number" min="1" max="100000" value="${episode ?? ""}"></label><label class="check"><input name="watched" type="checkbox" ${saved?.watched ? "checked" : ""}> Episode watched</label><label>Playback time in seconds<input name="position" type="number" min="0" step="0.1" value="${saved?.position ?? 0}"></label><label>Duration in seconds<input name="duration" type="number" min="0" step="0.1" value="${saved?.duration ?? 0}"></label><div class="actions"><button class="primary">Save watch data</button>${entry.status === "COMPLETED" ? '<button type="button" id="start-rewatch">Start rewatch</button>' : ""}</div></form><p class="muted">Earlier watch records stay saved.</p>`);
+  const form = d.querySelector<HTMLFormElement>("#watch-form")!;
+  form.onsubmit = e => void run(async () => {
+    e.preventDefault();
+    const data = new FormData(form);
+    const status = String(data.get("status")) as WatchStatus;
+    if (status === "COMPLETED" && entry.status !== "COMPLETED" && !confirm(`Mark all of ${entry.title} as Completed?`)) return;
+    const ep = Number(data.get("episode"));
+    state = await api.watchEdit(id, { status, count: Number(data.get("count")), ...(ep > 0 ? { episode: ep, watched: data.has("watched"), position: Number(data.get("position")), duration: Number(data.get("duration")) } : {}) });
+    d.close();
+    if (route === "watchlist") await watchlist();
+    if (route === "series") renderEpisodes();
+  });
+  const rewatch = d.querySelector<HTMLElement>("#start-rewatch");
+  if (rewatch) rewatch.onclick = () => void run(async () => {
+    state = await api.watchEdit(id, { startRewatch: true });
+    d.close();
+    if (route === "watchlist") await watchlist();
+    if (route === "series") renderEpisodes();
+  });
+}
+async function showSyncReview() {
+  const preview = await api.anilistPreview();
+  const d = dialog(`<h2 id="dialog-title">Review AniList sync</h2><p>${preview.first ? "First sync. " : ""}${preview.changes.length} changed values. Choose a side for each conflict.</p><div class="sync-changes">${preview.changes.map((row, i) => `<label>${esc(row.title)} · ${row.field} <small>Nen: ${esc(row.local ?? "none")} · AniList: ${esc(row.remote ?? "none")}</small><select data-choice="${i}"><option value="" ${!row.choice ? "selected" : ""}>Choose a side</option><option value="local" ${row.choice === "local" ? "selected" : ""}>Use Nen</option><option value="remote" ${row.choice === "remote" ? "selected" : ""}>Use AniList</option></select></label>`).join("") || '<p>No changes to sync.</p>'}</div><button id="apply-sync" class="primary">Apply sync</button>`);
+  d.querySelector<HTMLElement>("#apply-sync")!.onclick = () => void run(async () => {
+    const choices: SyncChange[] = preview.changes.map((row, i) => ({ ...row, choice: (d.querySelector<HTMLSelectElement>(`[data-choice="${i}"]`)!.value || undefined) as "local" | "remote" | undefined }));
+    if (choices.some(row => !row.choice)) { showToast("Choose a side for each change.", d); return; }
+    state = await api.anilistApply(choices);
+    d.close();
+    showToast("AniList sync complete.");
+    if (route === "watchlist") await watchlist();
+    if (route === "series") renderEpisodes();
+  });
+}
 function settings() {
   const s = state.settings;
   const languages = [
@@ -980,6 +1053,27 @@ function settings() {
   d.querySelector(".dialog-header .eyebrow")!.innerHTML = `<strong>NEN</strong> - ${esc(state.version)}`;
   const form = d.querySelector<HTMLFormElement>("#settings")!;
   const message = d.querySelector<HTMLElement>("#settings-message")!;
+  const transfer = document.createElement("section");
+  transfer.innerHTML = `<hr><h3>Watch data</h3><p>The JSON file has watch records and playback times. It has no video source or AniList token.</p><div class="actions"><button id="watch-export" type="button">Export watch data</button><button id="watch-import" type="button">Import watch data</button></div><hr><h3>AniList</h3><p id="anilist-state">${state.anilist.connected ? `Connected as ${esc(state.anilist.user)}. ${state.anilist.lastSync ? `Last sync: ${new Date(state.anilist.lastSync).toLocaleString()}.` : "No sync yet."}` : "Not connected."} ${esc(state.anilist.error ?? "")}</p><div class="actions">${state.anilist.connected ? '<button id="anilist-sync" type="button">Sync now</button><button id="anilist-disconnect" type="button">Disconnect</button>' : '<button id="anilist-connect" type="button">Connect AniList</button>'}</div>`;
+  message.before(transfer);
+  transfer.querySelector<HTMLElement>("#watch-export")!.onclick = () => void run(async () => { const path = await api.watchExport(); if (path) showToast(`Saved watch data to ${path}`, d); });
+  transfer.querySelector<HTMLElement>("#watch-import")!.onclick = () => void run(async () => {
+    const summary = await api.watchImportPreview();
+    if (!summary) return;
+    d.close();
+    const review = dialog(`<h2 id="dialog-title">Import watch data</h2><p>${summary.count} anime, ${summary.episodes} episode records. ${summary.newEntries} new anime and ${summary.changedEntries} existing anime.</p><p>Choose Merge to keep newer changes from each file. Replace removes all current watch entries. Nen will save a backup first.${state.anilist.connected ? " AniList entries can return on the next sync. Nen will not delete them from AniList." : ""}</p><div class="actions"><button id="import-merge" class="primary">Merge</button><button id="import-replace">Replace</button></div>`);
+    for (const mode of ["merge", "replace"] as const) review.querySelector<HTMLElement>(`#import-${mode}`)!.onclick = () => void run(async () => {
+      if (mode === "replace" && !confirm("Replace all current watch data? A backup will be saved.")) return;
+      state = await api.watchImport(mode);
+      review.close();
+      showToast("Watch data imported.");
+      if (state.anilist.connected) await showSyncReview();
+      else if (route === "watchlist") await watchlist();
+    });
+  });
+  transfer.querySelector<HTMLElement>("#anilist-connect")?.addEventListener("click", () => void run(async () => { await api.anilistConnect(); state = await api.state(); d.close(); await showSyncReview(); }));
+  transfer.querySelector<HTMLElement>("#anilist-sync")?.addEventListener("click", () => void run(async () => { d.close(); await showSyncReview(); }));
+  transfer.querySelector<HTMLElement>("#anilist-disconnect")?.addEventListener("click", () => void run(async () => { state = await api.anilistDisconnect(); d.close(); showToast("AniList disconnected."); }));
   const initialAdult = s.showAdult;
   let saveQueue = Promise.resolve();
   const save = () => {
@@ -1181,6 +1275,11 @@ async function start() {
     update(p);
   } else {
     shell();
+    api.onWatchState(value => {
+      state = value;
+      if (route === "watchlist") void watchlist();
+      else if (route === "series") renderEpisodes();
+    });
     api.onPlayback((p) => {
       const finding = document.querySelector<HTMLElement>("#finding-source");
       if (finding && p.loadingNotice) finding.textContent = p.loadingNotice;

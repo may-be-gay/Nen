@@ -1704,6 +1704,12 @@ dialog {
 }
 
 .episode-badges { display: flex; align-items: center; gap: 8px; }
+.episode-row { display: flex; align-items: stretch; border-bottom: 1px solid var(--line); }
+.episode-row .episode { flex: 1; min-width: 0; border-bottom: 0; }
+.episode-row > button:last-child { align-self: center; margin-right: 10px; }
+.sync-changes { max-height: 50vh; overflow: auto; display: grid; gap: 12px; margin: 16px 0; }
+.sync-changes label { display: grid; gap: 5px; }
+.sync-changes small { color: var(--muted); }
 .next-popup { left: auto; right: 34px; }
 
 .update-actions { gap: 16px; }
