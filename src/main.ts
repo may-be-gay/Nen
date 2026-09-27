@@ -1205,7 +1205,7 @@ function settings() {
     <section id="settings-app" role="tabpanel" aria-labelledby="settings-tab-app"><label>Appearance<select name="theme">${["system", "light", "dark"].map((v) => `<option value="${v}" ${s.theme === v ? "selected" : ""}>${v === "system" ? "Use system theme" : v[0].toUpperCase() + v.slice(1)}</option>`).join("")}</select></label><label class="check"><input name="discordPresence" type="checkbox" ${s.discordPresence === true ? "checked" : ""}> Show what I’m watching on Discord</label><label class="check"><input id="auto-updates" name="autoUpdates" type="checkbox" ${s.autoUpdates ? "checked" : ""}> Enable auto updates</label><hr><div class="actions update-actions"><button id="check-updates" type="button">Check for updates</button></div></section>
     <section id="settings-streaming" role="tabpanel" aria-labelledby="settings-tab-streaming" hidden><div class="field-pair"><label>Preferred audio<select name="audio">${options(s.audio)}</select></label><label>Preferred subtitles<select name="subtitles">${options(s.subtitles, true)}</select></label></div><label>Choose a source<select name="sourceMode"><option value="auto" ${s.sourceMode !== "manual" ? "selected" : ""}>Find the best source automatically</option><option value="manual" ${s.sourceMode === "manual" ? "selected" : ""}>Always let me choose</option></select></label><label>Search sources<select name="source">${["all", "Nyaa", "Bangumi Moe"].map((v) => `<option value="${v}" ${s.source === v ? "selected" : ""}>${v === "all" ? "All sources" : v}</option>`).join("")}</select></label><label>Preferred quality</label><details class="quality-dropdown"><summary id="quality-summary">${(s.qualities ?? [1080, 720, 480, 360]).map((q) => q + "p").join(", ")}</summary><fieldset><legend class="sr-only">Allowed video qualities</legend>${[2160, 1440, 1080, 720, 480, 360].map((q) => `<label class="check"><input name="qualities" type="checkbox" value="${q}" ${(s.qualities ?? [1080, 720, 480, 360]).includes(q) ? "checked" : ""}> ${q}p${q === 2160 ? " (4K)" : ""}</label>`).join("")}</fieldset></details><label class="check"><input name="autoNext" type="checkbox" ${s.autoNext ? "checked" : ""}> Auto play next episode</label><label class="check"><input name="autoSkip" type="checkbox" ${s.autoSkip ? "checked" : ""}> Automatically skip intros and outros</label><label class="check"><input name="showAdult" type="checkbox" ${s.showAdult ? "checked" : ""}> Show NSFW content</label><label class="check"><input name="hideZeroSeeds" type="checkbox" ${s.hideZeroSeeds !== false ? "checked" : ""}> Hide videos with 0 seeders</label></section>
     <section id="settings-account" role="tabpanel" aria-labelledby="settings-tab-account" hidden></section>
-    <section id="settings-changelog" role="tabpanel" aria-labelledby="settings-tab-changelog" hidden><div class="changelog-toolbar"><h3>Changelog</h3><div class="actions"><button id="changelog-refresh" type="button">Refresh</button><button id="changelog-github" type="button">View on GitHub</button></div></div><p class="changelog-intro">Recent commits on main. A download may not be ready for each change.</p><p id="changelog-status" role="status"></p><div id="changelog-list"></div><button id="changelog-more" type="button" hidden>Load more</button></section>
+    <section id="settings-changelog" role="tabpanel" aria-labelledby="settings-tab-changelog" hidden><p id="changelog-status" role="status"></p><div id="changelog-list"></div><button id="changelog-more" type="button" hidden>Load more</button></section>
     </form><p id="settings-message" role="status"></p>`,
   );
   const version = d.querySelector(".dialog-header .eyebrow")!;
@@ -1217,7 +1217,6 @@ function settings() {
   bindSectionTabs(d);
   const changelogList = d.querySelector<HTMLElement>("#changelog-list")!;
   const changelogStatus = d.querySelector<HTMLElement>("#changelog-status")!;
-  const changelogRefresh = d.querySelector<HTMLButtonElement>("#changelog-refresh")!;
   const changelogMore = d.querySelector<HTMLButtonElement>("#changelog-more")!;
   const changelogTab = d.querySelector<HTMLButtonElement>("#settings-tab-changelog")!;
   let changelogEntries: ChangelogEntry[] = [];
@@ -1228,7 +1227,8 @@ function settings() {
   let changelogRequest = 0;
   const renderChangelog = () => {
     changelogList.replaceChildren();
-    if (!changelogEntries.length) {
+    const visibleEntries = changelogEntries.filter(entry => !entry.merge);
+    if (!visibleEntries.length) {
       const empty = document.createElement("p");
       empty.textContent = "No commits found.";
       changelogList.append(empty);
@@ -1236,7 +1236,7 @@ function settings() {
     }
     let lastDate = "";
     let group: HTMLElement;
-    for (const entry of changelogEntries) {
+    for (const entry of visibleEntries) {
       const date = entry.date ? new Date(entry.date).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "Date unknown";
       if (date !== lastDate) {
         group = document.createElement("section");
@@ -1252,29 +1252,21 @@ function settings() {
       const title = document.createElement("p");
       title.className = "changelog-title";
       title.textContent = entry.title;
-      const meta = document.createElement("div");
+      const meta = document.createElement("span");
       meta.className = "changelog-meta";
       const link = document.createElement("button");
       link.type = "button";
-      link.textContent = entry.sha.slice(0, 7);
+      link.textContent = `(${entry.sha.slice(0, 7)})`;
       link.setAttribute("aria-label", `View commit ${entry.sha.slice(0, 7)} on GitHub`);
       link.onclick = () => void api.openChangelogCommit(entry.sha).catch(error);
       meta.append(link);
-      if (entry.merge || entry.sha === changelogBuild) {
+      if (entry.sha === changelogBuild) {
         const badge = document.createElement("span");
-        badge.textContent = entry.sha === changelogBuild ? "Your build" : "Merge";
+        badge.textContent = "Your build";
         meta.append(badge);
       }
-      item.append(title, meta);
-      if (entry.body) {
-        const details = document.createElement("details");
-        const summary = document.createElement("summary");
-        summary.textContent = "More details";
-        const body = document.createElement("p");
-        body.textContent = entry.body;
-        details.append(summary, body);
-        item.append(details);
-      }
+      title.append(" · ", meta);
+      item.append(title);
       group!.append(item);
     }
   };
@@ -1283,7 +1275,6 @@ function settings() {
     changelogLoading = true;
     const request = ++changelogRequest;
     changelogStatus.textContent = "Loading commits…";
-    changelogRefresh.disabled = true;
     changelogMore.disabled = true;
     try {
       const result = await api.changelog(nextPage, refresh);
@@ -1294,15 +1285,12 @@ function settings() {
       changelogBuild = result.buildCommit;
       renderChangelog();
       changelogStatus.textContent = result.stale ? "Could not refresh. Showing saved commits." : "";
-      changelogRefresh.textContent = result.stale ? "Try again" : "Refresh";
     } catch (e) {
       if (request !== changelogRequest || !d.open) return;
       changelogStatus.textContent = e instanceof Error ? e.message : "Could not load the changelog. Try again.";
-      changelogRefresh.textContent = "Try again";
     } finally {
       if (request === changelogRequest && d.open) {
         changelogLoading = false;
-        changelogRefresh.disabled = false;
         changelogMore.disabled = false;
         changelogMore.hidden = !changelogHasMore;
       }
@@ -1311,9 +1299,7 @@ function settings() {
   changelogTab.addEventListener("click", () => {
     if (!changelogPage && !changelogLoading) void loadChangelog(1);
   });
-  changelogRefresh.onclick = () => void loadChangelog(1, true);
   changelogMore.onclick = () => void loadChangelog(changelogPage + 1);
-  d.querySelector<HTMLButtonElement>("#changelog-github")!.onclick = () => void api.openChangelogCommit().catch(error);
   const transfer = document.createElement("section");
   transfer.innerHTML = `<h3 class="local-data-heading">AniList</h3><p id="anilist-state" ${!state.anilist.connected && !state.anilist.error ? "hidden" : ""}>${state.anilist.connected ? `Connected as ${esc(state.anilist.user)}. ${state.anilist.lastSync ? `Last sync: ${new Date(state.anilist.lastSync).toLocaleString()}.` : "No sync yet."}` : ""} ${esc(state.anilist.error ?? "")}</p><div class="actions">${state.anilist.connected ? '<button id="anilist-sync" type="button">Sync now</button><button id="anilist-disconnect" type="button">Disconnect</button>' : '<button id="anilist-connect" type="button">Connect AniList</button>'}</div><hr><h3 class="local-data-heading">Local data</h3><div class="actions"><button id="clear-cache" type="button">Clear downloaded cache</button><button id="clear-history" type="button">Clear watch history</button></div><div class="actions watch-transfer-actions"><button id="watch-export" type="button">Export watch data</button><button id="watch-import" type="button">Import watch data</button></div>`;
   d.querySelector("#settings-account")!.append(transfer);
